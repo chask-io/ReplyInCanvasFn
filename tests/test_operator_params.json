@@ -1,0 +1,10 @@
+{
+  "function_name": "ReplyInCanvasFn",
+  "test_type": "operator_params",
+  "args": {},
+  "prompt": "Responde en el canvas: razonamiento 'cerrar el ciclo por el canal canvas' y contenido 'Perfecto, agregue ese detalle al mapa.'",
+  "extra_params": {
+    "conversation_uuid": "00000000-0000-0000-0000-000000000001"
+  },
+  "files": []
+}

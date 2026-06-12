@@ -1,0 +1,13 @@
+{
+  "function_name": "ReplyInCanvasFn",
+  "test_type": "provided_params",
+  "args": {
+    "reasoning": "Answer the member in the same canvas thread.",
+    "content": "Gracias, lo incorporo al mapa y sigo con la siguiente pregunta."
+  },
+  "prompt": "Reply to the member inside the canvas conversation.",
+  "extra_params": {
+    "conversation_uuid": "00000000-0000-0000-0000-000000000001"
+  },
+  "files": []
+}
