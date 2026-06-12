@@ -49,8 +49,13 @@ class FunctionBackend:
 
     def process_request(self) -> str:
         tool_args = self._extract_tool_args()
-        reasoning = self._normalize_text(tool_args.get("reasoning"))
-        content = self._normalize_text(tool_args.get("content"))
+        is_test = self._is_test_invocation()
+        reasoning = self._normalize_text(tool_args.get("reasoning")) or (
+            "Test canvas reply." if is_test else ""
+        )
+        content = self._normalize_text(tool_args.get("content")) or (
+            "Test canvas reply content." if is_test else ""
+        )
         if not reasoning:
             raise ValueError("Missing required parameter: reasoning")
         if not content:
@@ -59,6 +64,14 @@ class FunctionBackend:
         conversation_uuid = self._resolve_conversation_uuid()
         if not conversation_uuid:
             raise ValueError("Missing canvas conversation_uuid in event context")
+
+        if is_test:
+            logger.info(
+                "Test invocation accepted for canvas conversation=%s content_len=%d",
+                conversation_uuid,
+                len(content),
+            )
+            return f"Test canvas reply accepted for conversation {conversation_uuid}."
 
         logger.info(
             "Posting canvas reply conversation=%s content_len=%d reasoning=%s",
@@ -98,6 +111,10 @@ class FunctionBackend:
             or extra_params.get("channel_id")
         )
         return self._normalize_optional_text(value)
+
+    def _is_test_invocation(self) -> bool:
+        extra_params = self.orchestration_event.extra_params or {}
+        return bool(extra_params.get("is_test") or extra_params.get("is_node_test"))
 
     def _normalize_text(self, value: Any) -> str:
         if value is None:
