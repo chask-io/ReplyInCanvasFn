@@ -26,14 +26,20 @@ def _get_canvas_designer_api_manager() -> ApiManager:
     manager = ApiManager(base_url=f"{base_domain.rstrip('/')}/api/v2/channels/canvas-designer")
 
     @manager.register("create_message", "create-message", "POST")
-    def _create_message(conversation_uuid: str, message: str, sender: str) -> Dict[str, Any]:
-        return {
-            "json": {
-                "conversation_uuid": conversation_uuid,
-                "message": message,
-                "sender": sender,
-            }
+    def _create_message(
+        conversation_uuid: str,
+        message: str,
+        sender: str,
+        canvas_uuid: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        payload = {
+            "conversation_uuid": conversation_uuid,
+            "message": message,
+            "sender": sender,
         }
+        if canvas_uuid:
+            payload["canvas_uuid"] = canvas_uuid
+        return {"json": payload}
 
     _canvas_designer_api_manager = manager
     return _canvas_designer_api_manager
@@ -64,18 +70,21 @@ class FunctionBackend:
         conversation_uuid = self._resolve_conversation_uuid()
         if not conversation_uuid:
             raise ValueError("Missing canvas conversation_uuid in event context")
+        canvas_uuid = self._resolve_canvas_uuid()
 
         if is_test:
             logger.info(
-                "Test invocation accepted for canvas conversation=%s content_len=%d",
+                "Test invocation accepted for canvas conversation=%s canvas=%s content_len=%d",
                 conversation_uuid,
+                canvas_uuid,
                 len(content),
             )
             return f"Test canvas reply accepted for conversation {conversation_uuid}."
 
         logger.info(
-            "Posting canvas reply conversation=%s content_len=%d reasoning=%s",
+            "Posting canvas reply conversation=%s canvas=%s content_len=%d reasoning=%s",
             conversation_uuid,
+            canvas_uuid,
             len(content),
             reasoning[:120],
         )
@@ -84,6 +93,7 @@ class FunctionBackend:
             conversation_uuid=conversation_uuid,
             message=content,
             sender="assistant",
+            canvas_uuid=canvas_uuid,
             access_token=self.orchestration_event.access_token,
             organization_id=str(self.orchestration_event.organization.organization_id),
             timeout=30,
@@ -111,6 +121,13 @@ class FunctionBackend:
             or extra_params.get("channel_id")
         )
         return self._normalize_optional_text(value)
+
+    def _resolve_canvas_uuid(self) -> Optional[str]:
+        extra_params = self.orchestration_event.extra_params or {}
+        design_context = extra_params.get("design_context") or {}
+        if not isinstance(design_context, dict):
+            return None
+        return self._normalize_optional_text(design_context.get("canvas_uuid"))
 
     def _is_test_invocation(self) -> bool:
         extra_params = self.orchestration_event.extra_params or {}
